@@ -42,11 +42,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AllTrie.cs" />
     <Compile Include="Dawg.cs" />
     <Compile Include="DawgFileMaker.cs" />
     <Compile Include="DawgHeader.cs" />
     <Compile Include="DawgNode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReverseTrie.cs" />
     <Compile Include="Trie.cs" />
     <Compile Include="TrieDiagnostics.cs" />
     <Compile Include="TrieNode.cs" />

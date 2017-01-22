@@ -8,9 +8,12 @@ using System.Threading.Tasks;
 
 namespace LeXpert.LexCore
 {
-    
-
-    public enum DawgType { ForwardWord, ForwardWordAndReverseWordlet, All };
+    /// <summary>
+    /// Forward - Forward Word only DAWG.
+    /// Reverse - Forward Word, Reverse Wordlets & Words DAWG.
+    /// All - Forward Word, Reverse Wordlets & Words, Forward Wordlets DAWG.
+    /// </summary>
+    public enum DawgType { Forward, Reverse, All };
 
     public class Dawg
     {

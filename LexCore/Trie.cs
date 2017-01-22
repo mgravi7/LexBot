@@ -8,12 +8,20 @@ using System.Threading.Tasks;
 namespace LeXpert.LexCore
 {
     /// <summary>
-    /// Class for constructing Trie structure, compressing it and saving it as DAWG file.
+    /// Base class for constructing Trie structure, compressing it and saving it as DAWG file.
+    /// This class creates a Dawg of type <see cref="DawgType"/> "Forward".
     /// Initially, Trie is in ADDING_WORDS state when words are added. When Compress is
     /// called, it is in COMPRESSING state followed by COMPRESSED when finished.
+    /// 
+    /// Call <see cref="AddWordsAsync(string)"/> followed by
+    /// <see cref="CompressAsync"/> followed by
+    /// <see cref="SaveTrieAsDawgAsync(string, Dawg.FileFormat)"/> to complete the process.
+    /// Calling <see cref="ValidateDawgAsync(string, string)"/> is recommended though
+    /// it is not necessary.
     /// </summary>
     public class Trie
     {
+        #region PUBLIC
         public enum TrieState {ADDING_WORDS, COMPRESSING, COMPRESSED};
 
         // CONSTRUCTOR
@@ -22,12 +30,6 @@ namespace LeXpert.LexCore
         /// </summary>
         public Trie()
         {
-            // diagnostics initialization
-            this.diagnostics = new TrieDiagnostics();
-
-            // state
-            this.state = TrieState.ADDING_WORDS;
-            
             // initialize the special nodes
             this.rootNode = new TrieNode();
             this.diagnostics.NumNodesBeforeCompression++;
@@ -35,30 +37,158 @@ namespace LeXpert.LexCore
             bool childExists;
             this.forwardWordNode = AddChildNode(this.rootNode, Dawg.FORWARD_WORD_DAWG_SYMBOL, false, out childExists);
             Debug.Assert(childExists == false);
-
-            this.reversePartWordNode = AddChildNode(this.rootNode, Dawg.REVERSE_WORDLET_DAWG_SYMBOL, false, out childExists);
-            Debug.Assert(childExists == false);
         }
 
-        // Interface IDawgFileMaker
         /// <summary>
-        /// Constructs Dawg from a given lexicon file.
+        /// Adds words to Trie from a given lexicon file.
+        /// Lines starting with '#' are ignored.
+        /// One word per line and all letters will be converted to UPPERCASE.
+        /// It is recommended to use the async version: <see cref="AddWordsAsync(string)"/>.
+        /// </summary>
+        /// <param name="wordFileName">Path of the file where lexicon words are present</param>
+        /// <returns>Number of words read</returns>
+        public uint AddWords(string wordFileName)
+        {
+            uint numWords = 0;
+            return numWords;
+        }
+
+        /// <summary>
+        /// Adds words to Trie from a given lexicon file.
         /// Lines starting with '#' are ignored.
         /// One word per line and all letters will be converted to UPPERCASE.
         /// </summary>
         /// <param name="wordFileName">Path of the file where lexicon words are present</param>
-        public async Task ConstructDawg(string wordFileName, DawgType dawgType)
+        /// <returns>Number of words read</returns>
+        public async Task<uint> AddWordsAsync(string wordFileName)
         {
-            throw new NotImplementedException();
+            return await Task.Run(() =>
+            {
+                return AddWords(wordFileName);
+            });
         }
 
-        public async Task SaveDawg(string dawgFileName, Dawg.FileFormat fileFormat)
+        /// <summary>
+        /// Compresses the Trie.
+        /// All the words must have been added already.
+        /// It is recommended to use the async version: <see cref="CompressAsync()"/>.
+        /// </summary>
+        /// <returns>Percents of nodes reduced through compression</returns>
+        public uint Compress()
         {
-            throw new NotImplementedException();
+            // diagnostics
+            this.diagnostics.CompressStartTime = DateTime.UtcNow;
+
+            uint percentNodeReduction = 0;
+
+            // return
+            this.diagnostics.CompressEndTime = DateTime.UtcNow;
+            return percentNodeReduction;
         }
 
-        // *** PRIVATE ***
+        /// <summary>
+        /// Compresses the Trie.
+        /// All the words must have been added already.
+        /// </summary>
+        /// <returns>Percents of nodes reduced through compression</returns>
+        public async Task<uint> CompressAsync()
+        {
+            return await Task.Run(() =>
+            {
+                return Compress();
+            });
+        }
 
+        /// <summary>
+        /// Saves the Trie as Dawg to a file.
+        /// All the words must have been added already.
+        /// It is recommended to use the async version: <see cref="SaveTrieAsDawgAsync(string, Dawg.FileFormat)"/>.
+        /// </summary>
+        /// <param name="dawgFileName">Path of the Dawg file to be created/overwritten</param>
+        /// <param name="fileFormat">Dawg file format</param>
+        /// <returns>Number of nodes saved</returns>
+        public uint SaveTrieAsDawg(string dawgFileName, Dawg.FileFormat fileFormat)
+        {
+            // diagnostics
+            this.diagnostics.SaveDawgStartTime = DateTime.UtcNow;
+
+            uint numNodes = 0;
+
+            // return
+            this.diagnostics.SaveDawgEndTime = DateTime.UtcNow;
+            return numNodes;
+        }
+
+        /// <summary>
+        /// Saves the Trie as Dawg to a file.
+        /// All the words must have been added already.
+        /// </summary>
+        /// <param name="dawgFileName">Path of the Dawg file to be created/overwritten</param>
+        /// <param name="fileFormat">Dawg file format</param>
+        /// <returns>Number of nodes saved</returns>
+        public async Task<uint> SaveTrieAsDawgAsync(string dawgFileName, Dawg.FileFormat fileFormat)
+        {
+            return await Task.Run(() =>
+            {
+                return SaveTrieAsDawg(dawgFileName, fileFormat);
+            });
+        }
+
+        /// <summary>
+        /// Reads each word from the wordFileName and ensures it is
+        /// represented in the Dawg properly. Also, it makes sure there
+        /// no unnecessary representations within the Dawg!
+        /// It is recommended to use the async version: <see cref="ValidateDawgAsync(string, string)"/>.
+        /// </summary>
+        /// <param name="dawgFileName">Path of the Dawg file</param>
+        /// <param name="wordFileName">Path of the file where lexicon words are present</param>
+        /// <returns>true if the validation is successful, false otherwise</returns>
+        public bool ValidateDawg(string dawgFileName, string wordFileName)
+        {
+            // diagnostics
+            this.diagnostics.ValidateDawgStartTime = DateTime.UtcNow;
+            bool isValid = false;
+
+            // return
+            this.diagnostics.ValidateDawgEndTime = DateTime.UtcNow;
+            return isValid;
+        }
+
+        /// <summary>
+        /// Reads each word from the wordFileName and ensures it is
+        /// represented in the Dawg properly. Also, it makes sure there
+        /// no unnecessary representations within the Dawg!
+        /// </summary>
+        /// <param name="dawgFileName">Path of the Dawg file</param>
+        /// <param name="wordFileName">Path of the file where lexicon words are present</param>
+        /// <returns>true if the validation is successful, false otherwise</returns>
+        public async Task<bool> ValidateDawgAsync(string dawgFileName, string wordFileName)
+        {
+            return await Task.Run(() =>
+            {
+                return ValidateDawg(dawgFileName, wordFileName);
+            });
+        }
+        #endregion PUBLIC
+
+        #region PROTECTED
+        protected TrieNode RootNode
+        {
+            get { return this.rootNode; }
+        }
+
+        /// <summary>
+        /// Adds the word to the Trie
+        /// </summary>
+        /// <param name="word">word to be added</param>
+        protected virtual void AddWord(string word)
+        {
+            // diagnostics
+            this.diagnostics.NumAttemptedWords++;
+
+            // add just the letters making up a given word
+        }
+        
         // ADD CHILD NODE
         /// <summary>
         /// Adds a new child node if needed. The addition/insertion takes place by alphabetical order.
@@ -69,79 +199,41 @@ namespace LeXpert.LexCore
         /// <param name="isTerminal">Is this a terminal node (end of word or end of word fragment)</param>
         /// <param name="childAlreadyExists">Set to true if the child already exists, false otherwise</param>
         /// <returns>Newly created node or existing node if the child already exists</returns>
-        private TrieNode AddChildNode(TrieNode parentNode, byte letter, bool isTerminal, out bool childAlreadyExists)
+        protected TrieNode AddChildNode(TrieNode parentNode, byte letter, bool isTerminal, out bool childAlreadyExists)
         {
             Debug.Assert(this.state == TrieState.ADDING_WORDS);
             Debug.Assert(parentNode != null);
 
-            // initialize
+            // does the child exist?
             childAlreadyExists = false;
-
-            // need to find the right place for insertion
-            TrieNode curChild = parentNode.FirstChild;
-            TrieNode prevChild = null;
-
-            while (curChild != null)
+            TrieNode childNode;
+            if (parentNode.children.TryGetValue(letter, out childNode))
             {
-                // is there a matching node?
-                if (letter == curChild.Letter)
-                {
-                    // isTerminal = true always wins for setting
-                    if (isTerminal == true && curChild.IsTerminal == false)
-                        curChild.IsTerminal = true;
-
-                    childAlreadyExists = true;
-                    return curChild;
-                }
-
-                // should the new child be inserted before the current child?
-                if (letter < curChild.Letter)
-                    break;
-
-                // next child
-                prevChild = curChild;
-                curChild = curChild.NextSibling;
+                childAlreadyExists = true;
+                if (childNode.isTerminal == false)
+                    childNode.isTerminal = isTerminal;
+                return childNode;
             }
 
-            // create a new node
-            TrieNode newChild = new TrieNode();
+            // create a new node and initialize it
+            childNode = new TrieNode();
             this.diagnostics.NumNodesBeforeCompression++;
 
-            // initialize the node
-            newChild.OriginalParent = parentNode;
-            newChild.Letter = letter;
-            newChild.IsTerminal = isTerminal;
-            newChild.NextSibling = curChild;    // this works regardless of if curChild is null or not
-
-            if (prevChild == null)
-            {
-                // this is the first child
-                newChild.IsFirstChild = true;
-
-                // if the parent already had a first child, its property should change!
-                if (parentNode.FirstChild != null)
-                    parentNode.FirstChild.IsFirstChild = false;
-
-                // set the newChild as FirstChild for parent
-                parentNode.FirstChild = newChild;
-            }
-            else
-            {
-                // this is not the first child
-                // link it to the previous child
-                prevChild.NextSibling = newChild;
-            }
-
-            return newChild;
+            childNode.originalParent = parentNode;
+            childNode.letter = letter;
+            childNode.isTerminal = isTerminal;
+            
+            return childNode;
         }
+        #endregion PROTECTED
 
-       
 
-        // DATA
-        TrieState       state;
-        TrieNode        rootNode;
-        TrieNode        forwardWordNode;       // forward words (no partials)
-        TrieNode        reversePartWordNode;   // reverse partials and reverse words
-        TrieDiagnostics diagnostics;
+        #region DATA
+        private TrieState       state = TrieState.ADDING_WORDS;
+        private TrieNode        rootNode;
+        private TrieNode        forwardWordNode;      // forward words (no wordlets)
+        
+        protected TrieDiagnostics diagnostics = new TrieDiagnostics();
+        #endregion DATA
     }
 }

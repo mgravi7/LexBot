@@ -9,46 +9,38 @@ namespace LeXpert.LexCore
     /// <summary>
     /// This is primarily a data class used for building the Trie
     /// </summary>
-    public class TrieNode
+    public class TrieNode : IEquatable<TrieNode>
     {
-        // DATA
-        public TrieNode FirstChild;
-        public TrieNode NextSibling;        // refers to the younger sibling
-        public TrieNode OriginalParent;
-        public uint NodeIdx;            // assigned after compression
-        public int HashCode;           // assigned after all the words are added
+        #region PUBLIC_DATA
+        internal SortedList<byte, TrieNode> children;
+        internal TrieNode                   originalParent;
+        internal uint?                      nodeIdx;            // assigned after compression
+        internal int                        hashCode;           // assigned after all the words are added
 
-        public byte Letter;
-        public bool IsTerminal;
-        public byte NumChildren;        // assigned after all the words are added
-        public byte NumYoungerSiblings; // assigned after all the words are added
+        internal byte letter;
+        internal bool isTerminal;
+        internal bool isFirstChild;       // assigned after all the words are added
+        internal bool isCompressed;       // valid only for first child (current algorithm usage)
+        
+        const int CHILDREN_LIST_INITIAL_CAPACITY = 5;
+        #endregion PUBLIC_DATA
 
-        public bool IsFirstChild;       // assigned after all the words are added
-        public bool IsCompressed;       // valid only for first child (current algorithm usage)
-        public bool IsCounted;          // has a pass been made for counting descendents
-        public bool IsNodeIdxAssigned;  // Has NodeIdx been assigned to this node?
-
+        #region PUBLIC_METHODS
         // CONSTRUCTOR
         /// <summary>
         /// Set default values for all the fields
         /// </summary>
         public TrieNode()
         {
-            this.FirstChild = null;
-            this.NextSibling = null;
-            this.OriginalParent = null;
-            this.NodeIdx = 0;
-            this.HashCode = base.GetHashCode();
+            this.children = new SortedList<byte, TrieNode>(CHILDREN_LIST_INITIAL_CAPACITY);
+            this.originalParent = null;
+            this.nodeIdx = null;
+            this.hashCode = base.GetHashCode();
 
-            this.Letter = 0;
-            this.IsTerminal = false;
-            this.NumChildren = 0;
-            this.NumYoungerSiblings = 0;
-
-            this.IsFirstChild = false;
-            this.IsCompressed = false;
-            this.IsCounted = false;
-            this.IsNodeIdxAssigned = false;
+            this.letter = 0;
+            this.isTerminal = false;
+            this.isFirstChild = false;
+            this.isCompressed = false;
         }
 
         // COMPUTE HASH CODE FOR TREE
@@ -62,13 +54,9 @@ namespace LeXpert.LexCore
             // need to do this for self first
             ComputeHashCode();
 
-            // first child and its tree
-            if (this.FirstChild != null)
-                this.FirstChild.ComputeHashCodeForTree();
-
-            // younger sibling and its tree
-            if (this.NextSibling != null)
-                this.NextSibling.ComputeHashCodeForTree();
+            // for all the children
+            foreach (var item in this.children)
+                item.Value.ComputeHashCodeForTree();    
         }
 
         // EQUALS
@@ -84,53 +72,32 @@ namespace LeXpert.LexCore
 
             // letter match?
             TrieNode node = (TrieNode)obj;
-            if (this.Letter != node.Letter)
+            return this.Equals(node);
+        }
+
+        // EQUALS (IEQUATABLE)
+        public bool Equals(TrieNode other)
+        {
+            if (this.letter != other.letter)
                 return false;
 
             // terminal match?
-            if (this.IsTerminal != node.IsTerminal)
+            if (this.isTerminal != other.isTerminal)
                 return false;
 
             // number of children?
-            if (this.NumChildren != node.NumChildren)
+            if (this.children.Count != other.children.Count)
                 return false;
 
-            // number of siblings?
-            if (this.NumYoungerSiblings != node.NumYoungerSiblings)
-                return false;
-
-            // first child?
-            if (this.FirstChild != null)
+            // all the children?
+            var otherItr = other.children.GetEnumerator();
+            otherItr.MoveNext();
+            foreach (var item in this.children)
             {
-                if (node.FirstChild != null)
-                {
-                    if (!this.FirstChild.Equals(node.FirstChild))
-                        return false;
-                }
-                else
-                    return false;   // node.FirstChild is null whereas this.FirstChild is NOT null
-            }
-            else
-            {
-                if (node.FirstChild != null)
-                    return false;   // node.FirstChild is NOT null whereas this.FirstChild is null
-            }
-
-            // next sibling?
-            if (this.NextSibling != null)
-            {
-                if (node.NextSibling != null)
-                {
-                    if (!this.NextSibling.Equals(node.NextSibling))
-                        return false;
-                }
-                else
-                    return false;   // node.NextSibling is null whereas this.NextSibling is NOT null
-            }
-            else
-            {
-                if (node.NextSibling != null)
-                    return false;   // node.NextSibling is NOT null whereas this.NextSibling is null
+                var otherItem = otherItr.Current;
+                if (!item.Value.Equals(otherItem.Value))
+                    return false;
+                otherItr.MoveNext();
             }
 
             // I guess they are equal!
@@ -146,7 +113,7 @@ namespace LeXpert.LexCore
         /// <returns></returns>
         public override int GetHashCode()
         {
-            return this.HashCode;
+            return this.hashCode;
         }
 
         // UPDATE IS FIRST CHILD FOR TREE
@@ -157,88 +124,46 @@ namespace LeXpert.LexCore
         /// </summary>
         public void UpdateIsFirstChildForTree()
         {
-            // first child and its tree
-            if (this.FirstChild != null)
+            int idx = 0;
+            foreach (var item in this.children)
             {
-                this.FirstChild.IsFirstChild = true;
-                this.FirstChild.UpdateIsFirstChildForTree();
-            }
-
-            // next sibling and its tree
-            if (this.NextSibling != null)
-            {
-                this.NextSibling.IsFirstChild = false;   // just by the fact it is younger sibling to current node
-                this.NextSibling.UpdateIsFirstChildForTree();
+                item.Value.UpdateIsFirstChildForTree();
+                if (idx++ == 0)   // first child
+                {
+                    item.Value.isFirstChild = true;
+                }
             }
         }
+        #endregion PUBLIC_METHODS
 
-        // UPDATE NUM CHILDREN AND SIBLING FOR TREE
-        /// <summary>
-        /// Updates the value for the node itself, children and
-        /// younger siblings (recursive in nature). Starting the call
-        /// for root node will take care of every node in the hierarchy.
-        /// </summary>
-        public void UpdateNumChildrenAndSiblingForTree()
-        {
-            // order of this is important as we take advantage
-            // of sibling count of the first child to update our child count
-            UpdateNumSiblings();    // for current node
-
-            // first child and its tree
-            if (this.FirstChild != null)
-            {
-                this.FirstChild.UpdateNumChildrenAndSiblingForTree();
-                this.NumChildren = this.FirstChild.NumYoungerSiblings;
-                this.NumChildren++;    // +1 for counting the first child
-            }
-
-            // next sibling and its tree
-            if (this.NextSibling != null)
-            {
-                this.NextSibling.UpdateNumChildrenAndSiblingForTree();
-            }
-        }
-
-        // *** PRIVATE ***
-
+        #region PRIVATE_METHODS
         // COMPUTE HASH CODE
         /// <summary>
-        /// To be called after all the words are added, number of children and
-        /// number of siblings set and IsFirstChild set. These are used in computing
-        /// the hash code for the current Node.
+        /// To be called after all the words are added, and IsFirstChild set.
+        /// These are used in computing the hash code for the current Node.
         /// </summary>
         private void ComputeHashCode()
         {
             // Hash code is made up of the following bits
-            // 31-26 (6 bits) - Unused
-            // 25-18 (8 bits) - Number of siblings
-            // 17-10 (8 bits) - Number of Children
-            // 09-09 (1 bit ) - IsFirstChild
-            // 08-08 (1 bit ) - IsTerminal
-            // 07-00 (8 bits) - Letter value
-            int bits25_18 = ((int)NumYoungerSiblings) << 18;
-            int bits17_10 = ((int)NumChildren) << 10;
-            int bit09_09 = (IsFirstChild ? 1 : 0) << 9;
-            int bit08_08 = (IsTerminal ? 1 : 0) << 8;
-            int bits07_00 = (int)Letter;
+            // 31-16 (16 bits) - Sum of Child letter values (cheap way of hashing)
+            // 15-10 ( 6 bits) - Number of Children
+            // 09-09 ( 1 bit ) - IsFirstChild
+            // 08-08 ( 1 bit ) - IsTerminal
+            // 07-00 ( 8 bits) - Letter value
 
-            this.HashCode = bits25_18 | bits17_10 | bit09_09 | bit08_08 | bits07_00;
-        }
+            // sum of child Letters
+            int sumOfChildLetters = 0;
+            foreach (var item in this.children)
+                sumOfChildLetters += (int)item.Value.letter;
 
-        // UPDATE NUM SIBLINGS
-        /// <summary>
-        /// Updates it for the current Node only
-        /// </summary>
-        private void UpdateNumSiblings()
-        {
-            // walk through the NextSibling value
-            this.NumYoungerSiblings = 0;
-            TrieNode curNode = NextSibling;
-            while (curNode != null)
-            {
-                this.NumYoungerSiblings++;
-                curNode = curNode.NextSibling;
-            }
+            int bits31_16 = sumOfChildLetters << 16;
+            int bits15_10 = ((int)this.children.Count) << 10;
+            int bit09_09 = (this.isFirstChild ? 1 : 0) << 9;
+            int bit08_08 = (this.isTerminal ? 1 : 0) << 8;
+            int bits07_00 = (int)this.letter;
+
+            this.hashCode = bits31_16 | bits15_10 | bit09_09 | bit08_08 | bits07_00;
         }
+        #endregion PRIVATE_METHODS
     }
 }

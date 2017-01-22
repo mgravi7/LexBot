@@ -17,9 +17,8 @@ namespace LeXpert.LexCore
         /// </summary>
         public uint NumAddedNodes
         {
-            get;
-            private set;
-        } = 0;
+            get { return this.numAddedNodes; }
+        }
 
         // *** PUBLIC ***
 
@@ -37,6 +36,7 @@ namespace LeXpert.LexCore
             this.header = new DawgHeader();
             UpdateHeader(lexiconName, numNodes, numWords, dawgType, numReverseWordlets, numForwardWordlets);
             this.nodes = new DawgNode[numNodes];
+            this.numAddedNodes = 0;
         }
 
         // ADD NODE
@@ -47,9 +47,9 @@ namespace LeXpert.LexCore
         public void AddNode(DawgNode dawgNode)
         {
             // validations
-            Debug.Assert(this.NumAddedNodes < header.NumNodes);
+            Debug.Assert(this.numAddedNodes < header.NumNodes);
 
-            nodes[this.NumAddedNodes++] = dawgNode;
+            nodes[this.numAddedNodes++] = dawgNode;
         }
 
         // SAVE DAWG
@@ -62,11 +62,11 @@ namespace LeXpert.LexCore
         public void SaveDawg(string fileName)
         {
             // validation
-            if (this.NumAddedNodes != header.NumNodes)
+            if (this.numAddedNodes != header.NumNodes)
             {
                 string exceptionMessage = string.Format(
                     "Expected number of nodes: {0}. However, only {1} nodes have been added so far!",
-                    this.header.NumNodes, this.NumAddedNodes);
+                    this.header.NumNodes, this.numAddedNodes);
                 throw new InvalidOperationException(exceptionMessage);
             }
 
@@ -111,7 +111,7 @@ namespace LeXpert.LexCore
                 writer.Write(header.NumForwardWordlets);
 
                 // write the nodes
-                for (uint idx = 0; idx < this.NumAddedNodes; idx++)
+                for (uint idx = 0; idx < this.numAddedNodes; idx++)
                 {
                     writer.Write(nodes[idx].ChildNodeIdx);
                     writer.Write(nodes[idx].Letter);
@@ -124,5 +124,6 @@ namespace LeXpert.LexCore
         // DATA
         private DawgHeader header;
         private DawgNode[] nodes;
+        private uint numAddedNodes;
     }
 }

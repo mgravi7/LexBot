@@ -126,7 +126,7 @@ namespace LexCoreTest
         const uint numNodes = 13;
         const uint numReverseWordlets = 4;
         const uint numForwardWordlets = 0;
-        DawgType dawgType = DawgType.ForwardWordAndReverseWordlet;
+        DawgType dawgType = DawgType.Reverse;
         DawgNode[] nodes;
     }
 }

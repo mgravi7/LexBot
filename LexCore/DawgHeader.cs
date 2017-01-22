@@ -23,7 +23,7 @@ namespace LeXpert.LexCore
         public string LexiconName { get; internal set; } = "";
         public string LexiconDate { get; internal set; } = DateTime.Now.ToString("dd MMMM yyyy");
         public uint NumWords { get; internal set; } = 0;
-        public DawgType DawgType { get; internal set; } = DawgType.ForwardWordAndReverseWordlet;
+        public DawgType DawgType { get; internal set; } = DawgType.Reverse;
         public uint NumReverseWordlets { get; internal set; } = 0;
         public uint NumForwardWordlets { get; internal set; } = 0;
 
